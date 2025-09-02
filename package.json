@@ -1,0 +1,30 @@
+{
+  "name": "api-resep",
+  "version": "1.0.0",
+  "description": "REST API resep",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app",
+    "dev": "nodemon app"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/an-arfianto/api-resep.git"
+  },
+  "author": "arifnur",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/an-arfianto/api-resep/issues"
+  },
+  "homepage": "https://github.com/an-arfianto/api-resep#readme",
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "mysql": "^2.18.1",
+    "validate.js": "^0.13.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
