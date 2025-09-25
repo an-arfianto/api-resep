@@ -14,7 +14,7 @@ exports.createData = (req, res, next) => {
   const querySql = "INSERT INTO users SET ?";
 
   // validasi
-  var errors = validateBootcamp(data);
+  var errors = validateUser(data);
   if (errors) {
     return next(new ErrorResponse(errors[0], 400));
   }

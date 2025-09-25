@@ -13,7 +13,7 @@ const conn = mysql.createConnection({
 // koneksi database
 conn.connect((err) => {
   if (err) throw err;
-  console.log("MySQL Connected...");
+  console.log("DB Connected...");
 });
 
 module.exports = conn;
