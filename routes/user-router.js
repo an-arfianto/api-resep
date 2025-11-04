@@ -1,8 +1,8 @@
 const {
-  createData,
-  readData,
-  updateData,
-  deleteData,
+    createData,
+    readData,
+    updateData,
+    deleteData,
 } = require("../controllers/user-controller");
 const express = require("express");
 const router = express.Router();

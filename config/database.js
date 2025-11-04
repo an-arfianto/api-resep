@@ -3,17 +3,17 @@ require("dotenv").config();
 
 // buat konfigurasi koneksi
 const conn = mysql.createConnection({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
-  multipleStatements: true,
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+    multipleStatements: true,
 });
 
 // koneksi database
 conn.connect((err) => {
-  if (err) throw err;
-  console.log("DB Connected...");
+    if (err) throw err;
+    console.log("DB Connected...");
 });
 
 module.exports = conn;

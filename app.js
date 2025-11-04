@@ -1,10 +1,11 @@
 const express = require("express");
-require("dotenv").config();
 const bodyParser = require("body-parser");
-const errorHandler = require("./middleware/error");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+require("dotenv").config();
+
+const errorHandler = require("./middleware/error");
 const userRouter = require("./routes/user-router");
 const testRouter = require("./routes/testRouter");
 
