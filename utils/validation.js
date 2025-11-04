@@ -1,6 +1,6 @@
-const validate = require("validate.js");
+import validate from "validate.js";
 
-exports.validateUser = (data) => {
+export function validateUser(data) {
     // user schema
     var constraint = {
         name: {
@@ -38,4 +38,4 @@ exports.validateUser = (data) => {
     };
 
     return validate(data, constraint, { format: "flat" });
-};
+}

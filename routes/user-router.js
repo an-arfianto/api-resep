@@ -1,9 +1,4 @@
-const {
-    createData,
-    readData,
-    updateData,
-    deleteData,
-} = require("../controllers/user-controller");
+const { createData, readData, updateData, deleteData, } = require("../controllers/user-controller");
 const express = require("express");
 const router = express.Router();
 

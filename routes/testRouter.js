@@ -1,8 +1,8 @@
-const express = require("express");
-const router = express.Router();
+import { Router } from "express";
+const router = Router();
 
 router.get("/", (req, res) => {
     res.json({ message: "Hello from Express API!" });
 });
 
-module.exports = router;
+export default router;

@@ -1,8 +1,8 @@
-const mysql = require("mysql");
+import { createConnection } from "mysql";
 require("dotenv").config();
 
 // buat konfigurasi koneksi
-const conn = mysql.createConnection({
+const conn = createConnection({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASS,
@@ -16,4 +16,4 @@ conn.connect((err) => {
     console.log("DB Connected...");
 });
 
-module.exports = conn;
+export default conn;

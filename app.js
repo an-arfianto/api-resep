@@ -1,17 +1,17 @@
-const express = require("express");
-const bodyParser = require("body-parser");
+import express from "express";
+import { json, urlencoded } from "body-parser";
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 require("dotenv").config();
 
-const errorHandler = require("./middleware/error");
-const userRouter = require("./routes/user-router");
-const testRouter = require("./routes/testRouter");
+import errorHandler from "./middleware/error";
+import userRouter from "./routes/user-router";
+import testRouter from "./routes/testRouter";
 
 // set body parser
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(json());
+app.use(urlencoded({ extended: false }));
 
 // set routing
 app.use("/api/user", userRouter);

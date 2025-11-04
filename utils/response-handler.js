@@ -16,4 +16,4 @@ const responseMessage = function (response, statusCode, message) {
     response.end();
 };
 
-module.exports = { responseData, responseMessage };
+export default { responseData, responseMessage };
