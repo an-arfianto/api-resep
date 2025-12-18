@@ -3,34 +3,17 @@ import validate from "validate.js";
 export function validateUser(data) {
     // user schema
     var constraint = {
-        name: {
+        username: {
             presence: {
                 allowEmpty: false,
             },
         },
-        description: {
+        password: {
             presence: {
                 allowEmpty: false,
             },
         },
-        website: {
-            presence: {
-                allowEmpty: false,
-            },
-            url: true,
-        },
-        phone: {
-            presence: {
-                allowEmpty: false,
-            },
-        },
-        email: {
-            presence: {
-                allowEmpty: false,
-            },
-            email: true,
-        },
-        address: {
+        role_id: {
             presence: {
                 allowEmpty: false,
             },

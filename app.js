@@ -1,24 +1,28 @@
 import express from "express";
-import { json, urlencoded } from "body-parser";
+import dotenv from "dotenv";
+
+import { errorHandler } from "./middlewares/errorHandler.js";
+import userRoutes from "./routes/userRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
+import recipeRoutes from "./routes/recipeRoutes.js";
+
 const app = express();
-const PORT = process.env.PORT || 5000;
+const port = process.env.PORT || 5000;
 
-require("dotenv").config();
+// set dotenv config
+dotenv.config();
 
-import errorHandler from "./middleware/error";
-import userRouter from "./routes/user-router";
-import testRouter from "./routes/testRouter";
-
-// set body parser
-app.use(json());
-app.use(urlencoded({ extended: false }));
+// set json parser
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // set routing
-app.use("/api/user", userRouter);
-app.use("/api/test", testRouter);
+app.use("/api/user", userRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/recipe", recipeRoutes);
 
 // set error middleware
 app.use(errorHandler);
 
 // buat server nya
-app.listen(PORT, () => console.log(`Server running at port: ${PORT}`));
+app.listen(port, () => console.log(`Server running at port: ${port}`));
