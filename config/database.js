@@ -1,26 +1,38 @@
-import mysql from "mysql";
+import mysql from "mysql2/promise";
 import dotenv from "dotenv";
+
 dotenv.config();
 
-// buat konfigurasi koneksi
-const conn = mysql.createPool({
+const pool = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
-    password: process.env.DB_PASS,
+    password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    multipleStatements: true,
-    waitForConnections: true, // wait for available connection if all are busy
-    connectionLimit: 10, // max 10 concurrent connections
-    queueLimit: 0, // unlimited queue
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 0,
 });
 
-function db(query, params = []) {
-    return new Promise((resolve, reject) => {
-        conn.query(query, params, (err, results) => {
-            if (err) reject(err);
-            else resolve(results);
-        });
-    });
+async function query(sql, params) {
+    try {
+        const [rows] = await pool.execute(sql, params);
+        return rows;
+    } catch (error) {
+        console.error(" Database query error:", error);
+        throw error;
+    }
 }
 
-export default db;
+// test
+pool.getConnection()
+    .then((connection) => {
+        console.log(" Database connected successfully");
+        connection.release();
+    })
+    .catch((err) => {
+        console.error(" Database connection failed:", err.message);
+    });
+
+export default query;

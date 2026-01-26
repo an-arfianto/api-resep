@@ -1,71 +1,116 @@
-import {
-    insertUser,
-    getUsers,
-    updateUser,
-    deleteUser,
-} from "../models/userModel.js";
-import { validateUser } from "../utils/validation.js";
+import UserModel from "../models/userModel.js";
 import { sendResponse } from "../utils/sendResponse.js";
 import ErrorResponse from "../utils/errorResponse.js";
+import jwt from "jsonwebtoken";
 
-// create user
-export async function createData(req, res, next) {
-    try {
-        const data = req.body;
+class UserController {
+    /**
+     * Register new user
+     */
+    static async register(req, res, next) {
+        try {
+            const { username, password, role_id } = req.body;
 
-        // Validate request
-        const errors = validateUser(data);
-        if (errors) {
-            return next(new ErrorResponse(errors[0], 400));
+            // Check if username exists
+            const exists = await UserModel.usernameExists(username);
+            if (exists) {
+                return next(new ErrorResponse("Username sudah digunakan", 400));
+            }
+
+            // Create user
+            const userId = await UserModel.createUser({
+                username,
+                password,
+                role_id,
+            });
+            const user = await UserModel.findById(userId);
+
+            // Generate token
+            const token = jwt.sign(
+                { id: user.id, username: user.username, role_id: user.role_id },
+                process.env.JWT_SECRET,
+                { expiresIn: process.env.JWT_EXPIRES_IN || "7d" },
+            );
+
+            sendResponse(res, 201, {
+                message: "Registrasi berhasil",
+                data: {
+                    user: {
+                        id: user.id,
+                        username: user.username,
+                        role_id: user.role_id,
+                        role_name: user.role_name,
+                    },
+                    token,
+                },
+            });
+        } catch (err) {
+            next(new ErrorResponse(err.message, 500));
         }
+    }
 
-        // Call model (handles hashing + DB insert)
-        const user = await insertUser(data);
+    /**
+     * Login user
+     */
+    static async login(req, res, next) {
+        try {
+            const { username, password } = req.body;
 
-        // Respond
-        sendResponse(res, 201, {
-            message: "Berhasil insert data!",
-            data: user,
-        });
-    } catch (err) {
-        next(new ErrorResponse(err.message, 500));
+            // Find user
+            const user = await UserModel.findByUsername(username);
+            if (!user) {
+                return next(new ErrorResponse("Username atau password salah", 401));
+            }
+
+            // Verify password
+            const isValid = await UserModel.verifyPassword(password, user.password);
+            if (!isValid) {
+                return next(new ErrorResponse("Username atau password salah", 401));
+            }
+
+            // Generate token
+            const token = jwt.sign(
+                { id: user.id, username: user.username, role_id: user.role_id },
+                process.env.JWT_SECRET,
+                { expiresIn: process.env.JWT_EXPIRES_IN || "7d" },
+            );
+
+            sendResponse(res, 200, {
+                message: "Login berhasil",
+                data: {
+                    user: {
+                        id: user.id,
+                        username: user.username,
+                        role_id: user.role_id,
+                        role_name: user.role_name,
+                    },
+                    token,
+                },
+            });
+        } catch (err) {
+            next(new ErrorResponse(err.message, 500));
+        }
+    }
+
+    /**
+     * Get current user
+     */
+    static async getCurrentUser(req, res, next) {
+        try {
+            const user = await UserModel.findById(req.user.id);
+
+            if (!user) {
+                return next(new ErrorResponse("User tidak ditemukan", 404));
+            }
+
+            sendResponse(res, 200, {
+                message: "User berhasil diambil",
+                data: user,
+            });
+        } catch (err) {
+            next(new ErrorResponse(err.message, 500));
+        }
     }
 }
 
-// show user
-export async function readData(req, res, next) {
-    try {
-        const users = await getUsers();
-
-        sendResponse(res, 200, { data: users });
-    } catch (err) {
-        next(new ErrorResponse(err.message, 500));
-    }
-}
-
-// update user
-export async function updateData(req, res, next) {
-    try {
-        const { id } = req.params;
-        const data = { ...req.body };
-
-        const result = await updateUser(id, data);
-
-        sendResponse(res, 200, { message: result.message });
-    } catch (err) {
-        next(new ErrorResponse(err.message, 500));
-    }
-}
-
-// delete user
-export async function deleteData(req, res, next) {
-    try {
-        const { id } = req.params;
-
-        const result = await deleteUser(id);
-
-        sendResponse(res, 200, { message: result.message });
-    } catch (err) {
-        next(new ErrorResponse(err.message, 500));
-    }
-}
+export default UserController;

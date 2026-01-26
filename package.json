@@ -6,9 +6,7 @@
     "main": "app.js",
     "scripts": {
         "start": "node app",
-        "dev": "nodemon app",
-        "lint": "eslint .",
-        "fix": "eslint . --fix"
+        "dev": "nodemon app"
     },
     "repository": {
         "type": "git",
@@ -21,17 +19,15 @@
     },
     "homepage": "https://github.com/an-arfianto/api-resep#readme",
     "dependencies": {
-        "bcryptjs": "^3.0.3",
+        "bcrypt": "^6.0.0",
+        "cors": "^2.8.5",
         "dotenv": "^17.2.3",
         "express": "^5.2.1",
         "jsonwebtoken": "^9.0.3",
-        "mysql": "^2.18.1",
+        "mysql2": "^3.16.1",
         "validate.js": "^0.13.1"
     },
     "devDependencies": {
-        "@eslint/js": "^9.39.1",
-        "eslint": "^9.39.1",
-        "globals": "^16.5.0",
         "nodemon": "^3.1.11"
     }
 }

@@ -2,10 +2,13 @@
 
 - [x] Login
 - [x] Register
-- [ ] JWT auth
-- [ ] CRUD
-    - [ ] user
-    - [ ] resep
+- [x] JWT auth
+- [x] CRUD
+    - [ ] user (ganti ke login register + delete hanya di admin)
+    - [x] resep
 - [ ] admin
 - [ ] moderator
-- [ ] user
+- [x] user
+- [ ] profile
+    - [-] moderator
+    - [-] user

@@ -1,13 +1,40 @@
-import { sendResponse } from "../utils/sendResponse.js";
+import ErrorResponse from "../utils/errorResponse.js";
 
-export const errorHandler = (err, req, res, next) => {
-    console.error("Error:", err.message);
+const errorHandler = (err, req, res, next) => {
+	let error = { ...err };
+	error.message = err.message;
 
-    // 500 code untuk eror
-    const statusCode = err.statusCode || 500;
+	// Log error for debugging
+	console.error("Error:", err);
 
-    // pakai response helper agar struktur sama
-    sendResponse(res, statusCode, {
-        error: err.message,
-    });
+	// MySQL duplicate entry
+	if (err.code === "ER_DUP_ENTRY") {
+		const message = "Data duplikat ditemukan";
+		error = new ErrorResponse(message, 400);
+	}
+
+	// MySQL foreign key constraint
+	if (err.code === "ER_NO_REFERENCED_ROW_2") {
+		const message = "Referensi data tidak valid";
+		error = new ErrorResponse(message, 400);
+	}
+
+	// JWT errors
+	if (err.name === "JsonWebTokenError") {
+		const message = "Token tidak valid";
+		error = new ErrorResponse(message, 401);
+	}
+
+	if (err.name === "TokenExpiredError") {
+		const message = "Token sudah kadaluarsa";
+		error = new ErrorResponse(message, 401);
+	}
+
+	// Send response
+	res.status(error.statusCode || 500).json({
+		success: false,
+		message: error.message || "Server error",
+	});
 };
+
+export default errorHandler;

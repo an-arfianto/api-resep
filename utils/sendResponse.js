@@ -1,6 +1,9 @@
-export const sendResponse = (res, status, payload = {}) => {
-    res.status(status).json({
-        success: status < 400, // true if 2xx or 3xx
-        ...payload,
+/*
+ * Standardized response sender
+ */
+export function sendResponse(res, statusCode, data) {
+    res.status(statusCode).json({
+        success: true,
+        ...data,
     });
-};
+}

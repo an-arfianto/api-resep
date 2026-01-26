@@ -1,37 +1,41 @@
 import jwt from "jsonwebtoken";
-import { sendResponse } from "../utils/sendResponse.js";
+import ErrorResponse from "../utils/errorResponse.js";
 
-export const protect = (req, res, next) => {
-	let token;
-
-	if (
-		req.headers.authorization &&
-		req.headers.authorization.startsWith("Bearer")
-	) {
-		token = req.headers.authorization.split(" ")[1];
-	}
-
-	if (!token) {
-		return sendResponse(res, 401, { message: "Not authorized, no token" });
-	}
-
+/**
+ * Authentication middleware
+ * Verifies JWT token from Authorization header
+ */
+const authMiddleware = (req, res, next) => {
 	try {
+		// Get token from header
+		const authHeader = req.headers.authorization;
+
+		if (!authHeader || !authHeader.startsWith("Bearer ")) {
+			return next(new ErrorResponse("Token tidak ditemukan", 401));
+		}
+
+		const token = authHeader.split(" ")[1];
+
+		// Verify token
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
-		req.user = decoded;
+
+		// Add user info to request
+		req.user = {
+			id: decoded.id,
+			username: decoded.username,
+			role_id: decoded.role_id,
+		};
+
 		next();
-	} catch (err) {
-		return sendResponse(res, 401, { message: "Invalid or expired token" });
+	} catch (error) {
+		if (error.name === "JsonWebTokenError") {
+			return next(new ErrorResponse("Token tidak valid", 401));
+		}
+		if (error.name === "TokenExpiredError") {
+			return next(new ErrorResponse("Token sudah kadaluarsa", 401));
+		}
+		return next(new ErrorResponse("Autentikasi gagal", 401));
 	}
 };
 
-// Role-based access
-export const authorize = (...allowedRoles) => {
-	return (req, res, next) => {
-		if (!allowedRoles.includes(req.user.role)) {
-			return sendResponse(res, 403, {
-				message: "Forbidden: insufficient permissions",
-			});
-		}
-		next();
-	};
-};
+export default authMiddleware;
