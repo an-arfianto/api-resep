@@ -4,7 +4,7 @@
 - [x] Register
 - [x] JWT auth
 - [x] CRUD
-    - [ ] user (ganti ke login register + delete hanya di admin)
+    - [x] user (ganti ke login register + delete hanya di admin)
     - [x] resep
 - [ ] admin
 - [ ] moderator

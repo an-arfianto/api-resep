@@ -6,7 +6,7 @@ dotenv.config();
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
+    password: process.env.DB_PASS,
     database: process.env.DB_NAME,
     waitForConnections: true,
     connectionLimit: 10,
@@ -20,7 +20,7 @@ async function query(sql, params) {
         const [rows] = await pool.execute(sql, params);
         return rows;
     } catch (error) {
-        console.error(" Database query error:", error);
+        console.error(" Database query eror: ", error);
         throw error;
     }
 }
@@ -28,11 +28,11 @@ async function query(sql, params) {
 // test
 pool.getConnection()
     .then((connection) => {
-        console.log(" Database connected successfully");
+        console.log(" Koneksi database sukses");
         connection.release();
     })
     .catch((err) => {
-        console.error(" Database connection failed:", err.message);
+        console.error(" Koneksi database gagal: ", err.message);
     });
 
 export default query;

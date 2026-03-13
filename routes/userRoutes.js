@@ -1,17 +1,13 @@
 import express from "express";
 import UserController from "../controllers/userController.js";
-import { validateRequest, schemas } from "../utils/validation.js";
+import { validateRequest, schema } from "../utils/validation.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
 // Public routes
-router.post(
-	"/register",
-	validateRequest(schemas.user),
-	UserController.register,
-);
-router.post("/login", validateRequest(schemas.login), UserController.login);
+router.post("/register", validateRequest(schema.user), UserController.register);
+router.post("/login", validateRequest(schema.login), UserController.login);
 
 // Protected routes
 router.get("/me", authMiddleware, UserController.getCurrentUser);

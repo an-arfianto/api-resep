@@ -3,6 +3,7 @@ import { sendResponse } from "../utils/sendResponse.js";
 import ErrorResponse from "../utils/errorResponse.js";
 
 class RecipeController {
+    // semua resep
     static async getAllRecipes(req, res, next) {
         try {
             const filters = {
@@ -13,7 +14,7 @@ class RecipeController {
             const recipes = await RecipeModel.getAllRecipes(filters);
 
             sendResponse(res, 200, {
-                message: "Semua resep berhasil diambil",
+                message: "Menampilkan semua resep",
                 count: recipes.length,
                 data: recipes,
             });
@@ -22,17 +23,18 @@ class RecipeController {
         }
     }
 
+    // resep id
     static async getRecipeById(req, res, next) {
         try {
             const recipeId = req.recipeId;
             const recipe = await RecipeModel.getRecipeById(recipeId);
 
             if (!recipe) {
-                return next(new ErrorResponse("Resep tidak ditemukan", 404));
+                return next(new ErrorResponse("Resep tidak ada", 404));
             }
 
             sendResponse(res, 200, {
-                message: "Resep berhasil diambil",
+                message: "Menampilkan resep",
                 data: recipe,
             });
         } catch (err) {
@@ -40,11 +42,11 @@ class RecipeController {
         }
     }
 
+    // resep saya
     static async getMyRecipes(req, res, next) {
         try {
             const userId = req.user.id;
 
-            // Users can see all their own recipes regardless of status
             const recipes = await RecipeModel.getAllRecipes({
                 userId: userId,
                 includeAll: true,
@@ -60,11 +62,12 @@ class RecipeController {
         }
     }
 
+    // tambah resep
     static async createRecipe(req, res, next) {
         try {
             const { name, category, description, instructions, ingredients } = req.body;
 
-            // Parse ingredients with measurements
+            // parsing bahan dg takaran
             const parsedIngredients = ingredients.map((item) => {
                 if (typeof item === "object") {
                     return {
@@ -73,18 +76,16 @@ class RecipeController {
                         unit: item.unit || null,
                     };
                 } else {
-                    // Parse string format: "500 g chicken"
+                    // parsing string format
                     const parts = item.trim().split(/\s+/);
 
                     if (parts.length >= 3) {
-                        // "500 g chicken" -> quantity: 500, unit: g, name: chicken
                         return {
                             name: parts.slice(2).join(" ").toLowerCase().trim(),
                             quantity: parseFloat(parts[0]) || null,
                             unit: parts[1].toLowerCase().trim(),
                         };
                     } else if (parts.length === 2) {
-                        // "500 chicken" or "chicken breast"
                         const maybeNumber = parseFloat(parts[0]);
                         if (!isNaN(maybeNumber)) {
                             return {
@@ -100,7 +101,6 @@ class RecipeController {
                             };
                         }
                     } else {
-                        // Just ingredient name
                         return {
                             name: item.toLowerCase().trim(),
                             quantity: null,
@@ -132,6 +132,7 @@ class RecipeController {
         }
     }
 
+    // update resep
     static async updateRecipe(req, res, next) {
         try {
             const recipeId = req.recipeId;
@@ -139,12 +140,10 @@ class RecipeController {
 
             const isOwner = await RecipeModel.isRecipeOwner(recipeId, req.user.id);
             if (!isOwner) {
-                return next(
-                    new ErrorResponse("Resep tidak ditemukan atau tidak memiliki akses", 403),
-                );
+                return next(new ErrorResponse("Resep tidak ditemukan/tidak memiliki akses", 403));
             }
 
-            // Parse ingredients (same as create)
+            // parsing bahan dan takaran
             const parsedIngredients = ingredients
                 ? ingredients.map((item) => {
                       if (typeof item === "object") {
@@ -180,7 +179,7 @@ class RecipeController {
             );
 
             if (!updated) {
-                return next(new ErrorResponse("Gagal mengupdate resep", 400));
+                return next(new ErrorResponse("Resep gagal diupdate", 400));
             }
 
             const updatedRecipe = await RecipeModel.getRecipeById(recipeId);
@@ -194,15 +193,14 @@ class RecipeController {
         }
     }
 
+    // hapus resep
     static async deleteRecipe(req, res, next) {
         try {
             const recipeId = req.recipeId;
             const deleted = await RecipeModel.deleteRecipe(recipeId, req.user.id);
 
             if (!deleted) {
-                return next(
-                    new ErrorResponse("Resep tidak ditemukan atau tidak memiliki akses", 403),
-                );
+                return next(new ErrorResponse("Resep tidak ditemukan/tidak memiliki akses", 403));
             }
 
             sendResponse(res, 200, {

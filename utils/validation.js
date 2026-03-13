@@ -1,9 +1,7 @@
 import validate from "validate.js";
 import ErrorResponse from "./errorResponse.js";
 
-/*
- * Custom validators validate.js
- */
+// custom validators
 validate.validators.type = function (value, options) {
     if (options === "array") {
         if (!Array.isArray(value)) {
@@ -13,9 +11,7 @@ validate.validators.type = function (value, options) {
     return null;
 };
 
-/*
- * Generic validation middleware validate.js
- */
+// validasi middleware
 export function validateRequest(schema) {
     return (req, res, next) => {
         const errors = validate(req.body, schema, { format: "flat" });
@@ -28,11 +24,9 @@ export function validateRequest(schema) {
     };
 }
 
-/*
- * Validation schemas
- */
-export const schemas = {
-    // User registration
+// Validation schema
+export const schema = {
+    // registrasi
     user: {
         username: {
             presence: {
@@ -42,7 +36,7 @@ export const schemas = {
             length: {
                 minimum: 3,
                 maximum: 50,
-                message: "^Username harus antara 3-50 karakter",
+                message: "^Username minimal 3-50 karakter",
             },
         },
         password: {
@@ -68,7 +62,7 @@ export const schemas = {
         },
     },
 
-    // User login
+    // login
     login: {
         username: {
             presence: {

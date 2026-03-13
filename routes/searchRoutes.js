@@ -4,7 +4,7 @@ import { validateSearch } from "../middlewares/validation.js";
 
 const router = express.Router();
 
-// Boolean search (public endpoint)
+// boolean retrieval
 router.post("/", validateSearch, SearchController.searchRecipes);
 
 export default router;

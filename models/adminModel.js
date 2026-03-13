@@ -1,9 +1,7 @@
 import db from "../config/database.js";
 
 class AdminModel {
-    /*
-     * Get all users with their recipe count
-     */
+    // semua user dg jumlah resepnya
     static async getAllUsersWithRecipeCount() {
         const sql = `
             SELECT u.id, u.username, u.role_id, r.name as role_name, u.created_at,
@@ -18,13 +16,11 @@ class AdminModel {
         return rows;
     }
 
-    /*
-     * Get all recipes with author details and ingredients
-     */
+    // detail resep
     static async getAllRecipesWithDetails() {
         const sql = `
             SELECT r.id, r.name, r.category, r.status, r.user_id, u.username as author,
-                   r.created_at,
+                   r.created_at, r.rejection_reason,
                    GROUP_CONCAT(DISTINCT i.ingredient SEPARATOR ', ') as ingredients
             FROM recipes r
             LEFT JOIN users u ON r.user_id = u.id
@@ -36,28 +32,21 @@ class AdminModel {
         return rows;
     }
 
-    /*
-     * Delete any recipe (admin power - bypasses ownership check)
-     */
+    // hapus resep
     static async deleteRecipe(recipeId) {
         const sql = "DELETE FROM recipes WHERE id = ?";
         const result = await db(sql, [recipeId]);
         return result.affectedRows > 0;
     }
 
-    /*
-     * Get system statistics
-     */
+    // sistem stats
     static async getSystemStats() {
-        // Get total users count
         const userCountSql = "SELECT COUNT(*) as count FROM users";
         const [userCount] = await db(userCountSql, []);
 
-        // Get total recipes count
         const recipeCountSql = "SELECT COUNT(*) as count FROM recipes";
         const [recipeCount] = await db(recipeCountSql, []);
 
-        // Get recipes grouped by category
         const categoryCountSql = `
             SELECT category, COUNT(*) as count 
             FROM recipes 
@@ -66,16 +55,42 @@ class AdminModel {
         `;
         const categories = await db(categoryCountSql, []);
 
+        const statusCountSql = `
+        SELECT 
+            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
+            SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected
+        FROM recipes
+    `;
+        const [statusCount] = await db(statusCountSql, []);
+
+        const roleCountSql = `
+        SELECT r.name as role_name, COUNT(u.id) as count
+        FROM users u
+        LEFT JOIN roles r ON u.role_id = r.id
+        GROUP BY r.name
+        ORDER BY r.id ASC
+    `;
+        const roleDistribution = await db(roleCountSql, []);
+
+        const pendingCountSql = "SELECT COUNT(*) as count FROM recipes WHERE status = 'pending'";
+        const [pendingCount] = await db(pendingCountSql, []);
+
         return {
             totalUsers: userCount.count,
             totalRecipes: recipeCount.count,
             recipesByCategory: categories,
+            pendingRecipes: pendingCount.count,
+            recipesByStatus: {
+                pending: statusCount.pending || 0,
+                approved: statusCount.approved || 0,
+                rejected: statusCount.rejected || 0,
+            },
+            usersByRole: roleDistribution,
         };
     }
 
-    /*
-     * Get user by ID (admin view - includes sensitive info if needed)
-     */
+    // detail user id
     static async getUserById(userId) {
         const sql = `
             SELECT u.id, u.username, u.role_id, r.name as role_name, u.created_at
@@ -87,18 +102,14 @@ class AdminModel {
         return rows[0];
     }
 
-    /*
-     * Update user role (admin power)
-     */
+    // update user role
     static async updateUserRole(userId, roleId) {
         const sql = "UPDATE users SET role_id = ? WHERE id = ?";
         const result = await db(sql, [roleId, userId]);
         return result.affectedRows > 0;
     }
 
-    /*
-     * Delete user (admin power - cannot delete admin)
-     */
+    // hapus user
     static async deleteUser(userId) {
         // Check if user is admin
         const checkSql = "SELECT role_id FROM users WHERE id = ?";
@@ -113,20 +124,16 @@ class AdminModel {
         return result.affectedRows > 0;
     }
 
-    /*
-     * Promote user to moderator
-     */
+    // promosi reguler user ke moderator
     static async promoteToModerator(userId) {
-        const sql = "UPDATE users SET role_id = 3 WHERE id = ? AND role_id = 2";
+        const sql = "UPDATE users SET role_id = 2 WHERE id = ? AND role_id = 3";
         const result = await db(sql, [userId]);
         return result.affectedRows > 0;
     }
 
-    /*
-     * Demote moderator to user
-     */
+    // moderator diturunkan ke reguler user
     static async demoteToUser(userId) {
-        const sql = "UPDATE users SET role_id = 2 WHERE id = ? AND role_id = 3";
+        const sql = "UPDATE users SET role_id = 3 WHERE id = ? AND role_id = 2";
         const result = await db(sql, [userId]);
         return result.affectedRows > 0;
     }

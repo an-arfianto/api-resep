@@ -1,26 +1,21 @@
 import db from "../config/database.js";
 
 class RecipeModel {
-    /*
-     * Get semua resep
-     */
+    // semua resep
     static async getAllRecipes(filters = {}) {
         let sql = `
             SELECT r.id, r.name, r.category,
-                r.description, r.instructions,  /* ADD THIS LINE */
+                r.description, r.instructions, 
                 r.status, r.reviewed_by, r.reviewed_at,
                 r.rejection_reason, r.created_at, r.user_id,
                 u.username as creator_username,
                 reviewer.username as reviewer_username,
                 GROUP_CONCAT(
-                    DISTINCT CONCAT(
-                        IFNULL(i.quantity, ''), 
-                        ' ', 
-                        IFNULL(i.unit, ''), 
-                        ' ', 
+                    DISTINCT CONCAT_WS(' ',
+                        NULLIF(TRIM(i.quantity), ''),
+                        NULLIF(TRIM(i.unit), ''),
                         i.ingredient
-                    ) 
-                    ORDER BY i.ingredient 
+                    ) ORDER BY i.ingredient 
                     SEPARATOR ', '
                 ) AS ingredients
             FROM recipes r 
@@ -31,12 +26,10 @@ class RecipeModel {
         `;
         const params = [];
 
-        // Filter by status (default: only approved for regular users)
         if (filters.status) {
             sql += " AND r.status = ?";
             params.push(filters.status);
         } else if (!filters.includeAll) {
-            // Only show approved recipes unless specifically requesting all
             sql += " AND r.status = 'approved'";
         }
 
@@ -59,11 +52,8 @@ class RecipeModel {
         return rows;
     }
 
-    /*
-     * Get resep ID
-     */
+    // detail resep id
     static async getRecipeById(recipeId, includeStatus = false) {
-        // First get recipe details
         const recipeSql = `
 			SELECT r.id, r.name, r.category,
 				r.description, r.instructions, r.status,
@@ -85,7 +75,7 @@ class RecipeModel {
 
         const recipe = recipeRows[0];
 
-        // Get ingredients with measurements
+        // bahan dengan takaran
         const ingredientsSql = `
 			SELECT ingredient, quantity, unit
 			FROM recipe_ingredients
@@ -95,30 +85,24 @@ class RecipeModel {
 
         const ingredients = await db(ingredientsSql, [recipeId]);
 
-        // Format ingredients for display
+        // format bahan (array obj)
         recipe.ingredients = ingredients.map((i) => ({
             name: i.ingredient,
             quantity: i.quantity,
             unit: i.unit,
-            display:
-                `${i.quantity ? i.quantity : ""} ${i.unit ? i.unit : ""} ${i.ingredient}`.trim(),
+            display: `${i.quantity ? i.quantity : ""} ${i.unit ? i.unit : ""} ${i.ingredient}`.trim(),
         }));
 
-        // Also provide as string for compatibility
+        // string format
         recipe.ingredientsText = ingredients
-            .map((i) =>
-                `${i.quantity ? i.quantity : ""} ${i.unit ? i.unit : ""} ${i.ingredient}`.trim(),
-            )
+            .map((i) => `${i.quantity ? i.quantity : ""} ${i.unit ? i.unit : ""} ${i.ingredient}`.trim())
             .join(", ");
 
         return recipe;
     }
 
-    /*
-     * Tambah resep
-     */
+    // tambah resep
     static async createRecipe(recipeData, ingredientsList) {
-        // tambah resep dengan 'pending' status secara default
         const recipeSql = `
 			INSERT INTO recipes (name, category, description, instructions, user_id, status)
 			VALUES (?, ?, ?, ?, ?, 'pending')
@@ -133,29 +117,22 @@ class RecipeModel {
 
         const recipeId = recipeResult.insertId;
 
-        // tambah bahan
         if (ingredientsList && ingredientsList.length > 0) {
             for (const ingredient of ingredientsList) {
-                await db(
-                    "INSERT INTO recipe_ingredients (recipe_id, ingredient, quantity, unit) VALUES (?, ?, ?, ?)",
-                    [
-                        recipeId,
-                        ingredient.name,
-                        ingredient.quantity || null,
-                        ingredient.unit || null,
-                    ],
-                );
+                await db("INSERT INTO recipe_ingredients (recipe_id, ingredient, quantity, unit) VALUES (?, ?, ?, ?)", [
+                    recipeId,
+                    ingredient.name,
+                    ingredient.quantity || null,
+                    ingredient.unit || null,
+                ]);
             }
         }
 
         return recipeId;
     }
 
-    /*
-     * Update resep
-     */
+    // update resep
     static async updateRecipe(recipeId, recipeData, ingredientsList, userId) {
-        // update resep - reset status ke pending
         const recipeSql = `
 			UPDATE recipes 
 			SET name = ?, category = ?, description = ?, instructions = ?, 
@@ -177,73 +154,57 @@ class RecipeModel {
 
         // update bahan jika diedit
         if (ingredientsList && ingredientsList.length > 0) {
-            // hapus data bahan lama
             await db("DELETE FROM recipe_ingredients WHERE recipe_id = ?", [recipeId]);
 
-            // tambah data bahan baru
             for (const ingredient of ingredientsList) {
-                await db(
-                    "INSERT INTO recipe_ingredients (recipe_id, ingredient, quantity, unit) VALUES (?, ?, ?, ?)",
-                    [
-                        recipeId,
-                        ingredient.name,
-                        ingredient.quantity || null,
-                        ingredient.unit || null,
-                    ],
-                );
+                await db("INSERT INTO recipe_ingredients (recipe_id, ingredient, quantity, unit) VALUES (?, ?, ?, ?)", [
+                    recipeId,
+                    ingredient.name,
+                    ingredient.quantity || null,
+                    ingredient.unit || null,
+                ]);
             }
         }
 
         return true;
     }
 
-    /*
-     * Hapus resep
-     */
+    // hapus resep
     static async deleteRecipe(recipeId, userId) {
         const sql = "DELETE FROM recipes WHERE id = ? AND user_id = ?";
         const result = await db(sql, [recipeId, userId]);
         return result.affectedRows > 0;
     }
 
-    /*
-     * Cek resep
-     */
+    // cek resep
     static async recipeExists(recipeId) {
         const sql = "SELECT id FROM recipes WHERE id = ?";
         const rows = await db(sql, [recipeId]);
         return rows.length > 0;
     }
 
-    /*
-     * Cek owner resep
-     */
+    // cek owner resep
     static async isRecipeOwner(recipeId, userId) {
         const sql = "SELECT id FROM recipes WHERE id = ? AND user_id = ?";
         const rows = await db(sql, [recipeId, userId]);
         return rows.length > 0;
     }
 
-    /*
-     * Get recipes by status (for moderation)
-     */
+    // data resep dg status
     static async getRecipesByStatus(status) {
         const sql = `
             SELECT r.id, r.name, r.category,
-                r.description, r.instructions,  /* ADD THIS LINE */
+                r.description, r.instructions,
                 r.status, r.reviewed_by, r.reviewed_at,
                 r.rejection_reason, r.created_at, r.user_id,
                 u.username as creator_username,
                 reviewer.username as reviewer_username,
                 GROUP_CONCAT(
-                    DISTINCT CONCAT(
-                        IFNULL(i.quantity, ''), 
-                        ' ', 
-                        IFNULL(i.unit, ''), 
-                        ' ', 
+                    DISTINCT CONCAT_WS(' ',
+                        NULLIF(TRIM(i.quantity), ''),
+                        NULLIF(TRIM(i.unit), ''),
                         i.ingredient
-                    ) 
-                    ORDER BY i.ingredient 
+                    ) ORDER BY i.ingredient 
                     SEPARATOR ', '
                 ) AS ingredients
             FROM recipes r 
@@ -258,9 +219,7 @@ class RecipeModel {
         return rows;
     }
 
-    /*
-     * Approve a recipe
-     */
+    // setujui resep
     static async approveRecipe(recipeId, moderatorId) {
         const sql = `
 			UPDATE recipes 
@@ -271,9 +230,7 @@ class RecipeModel {
         return result.affectedRows > 0;
     }
 
-    /*
-     * Reject a recipe
-     */
+    // tolak resep
     static async rejectRecipe(recipeId, moderatorId, reason = null) {
         const sql = `
 			UPDATE recipes 
@@ -284,9 +241,7 @@ class RecipeModel {
         return result.affectedRows > 0;
     }
 
-    /*
-     * Get moderation statistics
-     */
+    // moderator statistik
     static async getModerationStats() {
         const sql = `
 			SELECT 
@@ -298,6 +253,68 @@ class RecipeModel {
 		`;
         const rows = await db(sql, []);
         return rows[0];
+    }
+
+    // moderator statistik (personal)
+    static async getModeratorPersonalStats(moderatorId) {
+        const sql = `
+            SELECT 
+                COUNT(*) as reviewed_count,
+                SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_count,
+                SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected_count
+            FROM recipes
+            WHERE reviewed_by = ?
+        `;
+        const [stats] = await db(sql, [moderatorId]);
+
+        // Get system-wide pending count
+        const pendingSql = "SELECT COUNT(*) as pending_count FROM recipes WHERE status = 'pending'";
+        const [pendingResult] = await db(pendingSql, []);
+
+        return {
+            reviewed_count: stats.reviewed_count || 0,
+            approved_count: stats.approved_count || 0,
+            rejected_count: stats.rejected_count || 0,
+            pending_count: pendingResult.pending_count || 0,
+        };
+    }
+
+    // moderator profile stats (full stats untuk moderator)
+    static async getModeratorProfileStats(moderatorId) {
+        const moderationSql = `
+            SELECT 
+                COUNT(*) as reviewed_count,
+                SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_count,
+                SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected_count
+            FROM recipes
+            WHERE reviewed_by = ?
+        `;
+        const [moderationStats] = await db(moderationSql, [moderatorId]);
+
+        const pendingSql = "SELECT COUNT(*) as pending_count FROM recipes WHERE status = 'pending'";
+        const [pendingResult] = await db(pendingSql, []);
+
+        const personalRecipesSql = `
+            SELECT 
+                COUNT(*) as my_recipe_count,
+                SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as my_approved_count,
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as my_pending_count,
+                SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as my_rejected_count
+            FROM recipes
+            WHERE user_id = ?
+        `;
+        const [personalStats] = await db(personalRecipesSql, [moderatorId]);
+
+        return {
+            reviewed_count: moderationStats.reviewed_count || 0,
+            approved_count: moderationStats.approved_count || 0,
+            rejected_count: moderationStats.rejected_count || 0,
+            pending_count: pendingResult.pending_count || 0,
+            my_recipe_count: personalStats.my_recipe_count || 0,
+            my_approved_count: personalStats.my_approved_count || 0,
+            my_pending_count: personalStats.my_pending_count || 0,
+            my_rejected_count: personalStats.my_rejected_count || 0,
+        };
     }
 }
 

@@ -4,20 +4,16 @@ import ErrorResponse from "../utils/errorResponse.js";
 import jwt from "jsonwebtoken";
 
 class UserController {
-    /**
-     * Register new user
-     */
+    // register
     static async register(req, res, next) {
         try {
             const { username, password, role_id } = req.body;
 
-            // Check if username exists
             const exists = await UserModel.usernameExists(username);
             if (exists) {
                 return next(new ErrorResponse("Username sudah digunakan", 400));
             }
 
-            // Create user
             const userId = await UserModel.createUser({
                 username,
                 password,
@@ -25,7 +21,6 @@ class UserController {
             });
             const user = await UserModel.findById(userId);
 
-            // Generate token
             const token = jwt.sign(
                 { id: user.id, username: user.username, role_id: user.role_id },
                 process.env.JWT_SECRET,
@@ -49,26 +44,21 @@ class UserController {
         }
     }
 
-    /**
-     * Login user
-     */
+    // login
     static async login(req, res, next) {
         try {
             const { username, password } = req.body;
 
-            // Find user
             const user = await UserModel.findByUsername(username);
             if (!user) {
                 return next(new ErrorResponse("Username atau password salah", 401));
             }
 
-            // Verify password
             const isValid = await UserModel.verifyPassword(password, user.password);
             if (!isValid) {
                 return next(new ErrorResponse("Username atau password salah", 401));
             }
 
-            // Generate token
             const token = jwt.sign(
                 { id: user.id, username: user.username, role_id: user.role_id },
                 process.env.JWT_SECRET,
@@ -92,9 +82,7 @@ class UserController {
         }
     }
 
-    /**
-     * Get current user
-     */
+    // ambil data user
     static async getCurrentUser(req, res, next) {
         try {
             const user = await UserModel.findById(req.user.id);
@@ -104,7 +92,7 @@ class UserController {
             }
 
             sendResponse(res, 200, {
-                message: "User berhasil diambil",
+                message: "User ditemukan",
                 data: user,
             });
         } catch (err) {

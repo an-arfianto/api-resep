@@ -8,13 +8,9 @@ const router = express.Router();
 // Public routes
 router.get("/", RecipeController.getAllRecipes);
 
-// Protected routes that must come BEFORE /:id
+// resep management
 router.get("/my", authMiddleware, RecipeController.getMyRecipes);
-
-// /:id route - this should come AFTER /my to avoid conflicts
 router.get("/:id", validateRecipeId, RecipeController.getRecipeById);
-
-// Other protected routes
 router.post("/", authMiddleware, validateRecipeCreate, RecipeController.createRecipe);
 router.put(
     "/:id",

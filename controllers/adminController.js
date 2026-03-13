@@ -2,16 +2,14 @@ import AdminModel from "../models/adminModel.js";
 import ErrorResponse from "../utils/errorResponse.js";
 
 class AdminController {
-    /**
-     * Get all users with their recipe count
-     */
+    // semua user
     static async getAllUsers(req, res, next) {
         try {
             const users = await AdminModel.getAllUsersWithRecipeCount();
 
             res.status(200).json({
                 success: true,
-                message: "All users retrieved",
+                message: "Menampilkan semua data",
                 count: users.length,
                 data: users,
             });
@@ -20,16 +18,14 @@ class AdminController {
         }
     }
 
-    /**
-     * Get all recipes (admin can see all)
-     */
+    // semua resep
     static async getAllRecipes(req, res, next) {
         try {
             const recipes = await AdminModel.getAllRecipesWithDetails();
 
             res.status(200).json({
                 success: true,
-                message: "All recipes retrieved",
+                message: "Menampilkan semua resep",
                 count: recipes.length,
                 data: recipes,
             });
@@ -38,42 +34,38 @@ class AdminController {
         }
     }
 
-    /**
-     * Delete any recipe (admin power)
-     */
+    // hapus resep
     static async deleteRecipe(req, res, next) {
         try {
             const recipeId = parseInt(req.params.id);
 
             if (isNaN(recipeId)) {
-                return next(new ErrorResponse("Invalid recipe ID", 400));
+                return next(new ErrorResponse("id resep invalid", 400));
             }
 
             const success = await AdminModel.deleteRecipe(recipeId);
 
             if (!success) {
-                return next(new ErrorResponse("Recipe not found", 404));
+                return next(new ErrorResponse("Resep tidak ada", 404));
             }
 
             res.status(200).json({
                 success: true,
-                message: "Recipe deleted by admin",
+                message: "Resep berhasil dihapus",
             });
         } catch (error) {
             next(error);
         }
     }
 
-    /**
-     * Get system statistics
-     */
+    // sistem stats
     static async getStats(req, res, next) {
         try {
             const stats = await AdminModel.getSystemStats();
 
             res.status(200).json({
                 success: true,
-                message: "Statistics retrieved",
+                message: "Menampilkan statistik",
                 data: stats,
             });
         } catch (error) {
@@ -81,102 +73,76 @@ class AdminController {
         }
     }
 
-    /**
-     * Promote user to moderator
-     */
+    // naik jabatan
     static async promoteToModerator(req, res, next) {
         try {
             const userId = parseInt(req.params.id);
 
             if (isNaN(userId)) {
-                return next(new ErrorResponse("Invalid user ID", 400));
+                return next(new ErrorResponse("id user invalid", 400));
             }
 
             const success = await AdminModel.promoteToModerator(userId);
 
             if (!success) {
-                return next(new ErrorResponse("User not found or already a moderator", 404));
+                return next(new ErrorResponse("User tidak ada/telah menjadi moderator", 404));
             }
 
             res.status(200).json({
                 success: true,
-                message: "User promoted to moderator successfully",
+                message: "User berhasil naik ke moderator",
             });
         } catch (error) {
             next(error);
         }
     }
 
-    /**
-     * Demote moderator to user
-     */
+    // turun jabatan
     static async demoteToUser(req, res, next) {
         try {
             const userId = parseInt(req.params.id);
 
             if (isNaN(userId)) {
-                return next(new ErrorResponse("Invalid user ID", 400));
+                return next(new ErrorResponse("id user invalid", 400));
             }
 
             const success = await AdminModel.demoteToUser(userId);
 
             if (!success) {
-                return next(new ErrorResponse("User not found or not a moderator", 404));
+                return next(new ErrorResponse("User tidak ada/bukan moderator", 404));
             }
 
             res.status(200).json({
                 success: true,
-                message: "Moderator demoted to user successfully",
+                message: "Moderator berhasil turun ke user biasa",
             });
         } catch (error) {
             next(error);
         }
     }
 
-    /**
-     * Delete user
-     */
+    // hapus user
     static async deleteUser(req, res, next) {
         try {
             const userId = parseInt(req.params.id);
 
             if (isNaN(userId)) {
-                return next(new ErrorResponse("Invalid user ID", 400));
+                return next(new ErrorResponse("id user invalid", 400));
             }
 
-            // Prevent deleting yourself
             if (userId === req.user.id) {
-                return next(new ErrorResponse("Cannot delete your own account", 400));
+                return next(new ErrorResponse("Tidak bisa menghapus akun anda sendiri", 400));
             }
 
             const success = await AdminModel.deleteUser(userId);
 
             if (!success) {
-                return next(new ErrorResponse("User not found or cannot delete admin", 404));
+                return next(new ErrorResponse("User tidak ada/tidak bisa dihapus oleh admin", 404));
             }
 
             res.status(200).json({
                 success: true,
-                message: "User deleted successfully",
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
-
-    static async demoteToUser(req, res, next) {
-        try {
-            const userId = parseInt(req.params.id);
-            if (isNaN(userId)) {
-                return next(new ErrorResponse("Invalid user ID", 400));
-            }
-            const success = await AdminModel.demoteToUser(userId);
-            if (!success) {
-                return next(new ErrorResponse("User not found or not a moderator", 404));
-            }
-            res.status(200).json({
-                success: true,
-                message: "Moderator demoted to user successfully",
+                message: "User berhasil dihapus",
             });
         } catch (error) {
             next(error);

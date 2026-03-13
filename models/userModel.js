@@ -2,9 +2,7 @@ import db from "../config/database.js";
 import bcrypt from "bcrypt";
 
 class UserModel {
-    /*
-     * Create new user
-     */
+    // tambah user
     static async createUser(userData) {
         const hashedPassword = await bcrypt.hash(userData.password, 10);
 
@@ -14,9 +12,7 @@ class UserModel {
         return result.insertId;
     }
 
-    /*
-     * Find user by username
-     */
+    // cari username
     static async findByUsername(username) {
         const sql = `
 			SELECT u.id, u.username, u.password, u.role_id, r.name as role_name
@@ -28,9 +24,7 @@ class UserModel {
         return rows[0];
     }
 
-    /*
-     * Find user by ID
-     */
+    // cari detail user id
     static async findById(userId) {
         const sql = `
 			SELECT u.id, u.username, u.role_id, r.name as role_name, u.created_at
@@ -42,16 +36,12 @@ class UserModel {
         return rows[0];
     }
 
-    /*
-     * Verify password
-     */
+    // verifikasi password
     static async verifyPassword(plainPassword, hashedPassword) {
         return await bcrypt.compare(plainPassword, hashedPassword);
     }
 
-    /*
-     * get user with password
-     */
+    // detail user dg password
     static async findByIdWithPassword(userId) {
         const sql = `
         SELECT u.id, u.username, u.password, u.role_id, r.name as role_name
@@ -63,18 +53,14 @@ class UserModel {
         return rows[0];
     }
 
-    /*
-     * Check if username exists
-     */
+    // username terpakai/tidak
     static async usernameExists(username) {
         const sql = "SELECT id FROM users WHERE username = ?";
         const rows = await db(sql, [username]);
         return rows.length > 0;
     }
 
-    /*
-     * Get all users (admin only)
-     */
+    // data semua users (keperluan admin)
     static async getAllUsers() {
         const sql = `
 			SELECT u.id, u.username, u.role_id, r.name as role_name, u.created_at
@@ -86,16 +72,13 @@ class UserModel {
         return rows;
     }
 
-    /*
-     * Update user profile (username)
-     */
+    // update username
     static async updateProfile(userId, username) {
-        // Check if username already taken by another user
         const checkSql = "SELECT id FROM users WHERE username = ? AND id != ?";
         const existing = await db(checkSql, [username, userId]);
 
         if (existing.length > 0) {
-            throw new Error("Username already taken");
+            throw new Error("Username telah dipakai");
         }
 
         const sql = "UPDATE users SET username = ? WHERE id = ?";
@@ -103,9 +86,7 @@ class UserModel {
         return result.affectedRows > 0;
     }
 
-    /*
-     * Update user password
-     */
+    // update password
     static async updatePassword(userId, newPassword) {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         const sql = "UPDATE users SET password = ? WHERE id = ?";
@@ -113,9 +94,7 @@ class UserModel {
         return result.affectedRows > 0;
     }
 
-    /*
-     * Get user stats (recipe count, etc)
-     */
+    // user stats
     static async getUserStats(userId) {
         const sql = `
             SELECT 
@@ -132,6 +111,28 @@ class UserModel {
         `;
         const rows = await db(sql, [userId]);
         return rows[0];
+    }
+
+    // admin stats
+    static async getAdminStats() {
+        const userCountSql = "SELECT COUNT(*) as total_users FROM users";
+        const [userCount] = await db(userCountSql, []);
+
+        const recipeCountSql = "SELECT COUNT(*) as total_recipes FROM recipes";
+        const [recipeCount] = await db(recipeCountSql, []);
+
+        const pendingSql = "SELECT COUNT(*) as pending_count FROM recipes WHERE status = 'pending'";
+        const [pendingCount] = await db(pendingSql, []);
+
+        const categoriesSql = "SELECT COUNT(DISTINCT category) as total_categories FROM recipes";
+        const [categoriesCount] = await db(categoriesSql, []);
+
+        return {
+            total_users: userCount.total_users,
+            total_recipes: recipeCount.total_recipes,
+            pending_count: pendingCount.pending_count,
+            total_categories: categoriesCount.total_categories,
+        };
     }
 }
 

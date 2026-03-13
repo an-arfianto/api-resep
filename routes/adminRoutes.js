@@ -5,21 +5,20 @@ import adminMiddleware from "../middlewares/adminMiddleware.js";
 
 const router = express.Router();
 
-// All admin routes require authentication and admin role
+// route hanya dapat diakses oleh admin saja
 router.use(authMiddleware, adminMiddleware);
 
-// User management
+// user management
 router.get("/users", AdminController.getAllUsers);
 router.put("/users/:id/promote", AdminController.promoteToModerator);
+router.put("/users/:id/demote", AdminController.demoteToUser);
 router.delete("/users/:id", AdminController.deleteUser);
 
-// Recipe management
+// resep management
 router.get("/recipes", AdminController.getAllRecipes);
 router.delete("/recipes/:id", AdminController.deleteRecipe);
 
-// Statistics
+// statistik
 router.get("/stats", AdminController.getStats);
-
-router.put("/users/:id/demote", AdminController.demoteToUser);
 
 export default router;

@@ -4,16 +4,14 @@ import authMiddleware from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-// All profile routes require authentication
+// route dapat diakses jika sudah login/terautentikasi
 router.use(authMiddleware);
 
-// Get profile with stats
+// info profil
 router.get("/", ProfileController.getProfile);
 
-// Update profile (username)
+// user management
 router.put("/", ProfileController.updateProfile);
-
-// Update password
 router.put("/password", ProfileController.updatePassword);
 
 export default router;
