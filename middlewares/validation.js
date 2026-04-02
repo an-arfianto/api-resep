@@ -1,110 +1,88 @@
 import ErrorResponse from "../utils/errorResponse.js";
 
-// validasi data pencarian
+const stringCheck = (string) => typeof string === "string" && string.trim() !== "";
+
+export function validateRegister(req, res, next) {
+    const { username, password, role_id } = req.body;
+
+    if (!stringCheck(username)) return next(new ErrorResponse("Username tidak boleh kosong", 400));
+    if (username.length < 3 || username.length > 50)
+        return next(new ErrorResponse("Username minimal 3-50 karakter", 400));
+    if (!stringCheck(password)) return next(new ErrorResponse("Password tidak boleh kosong", 400));
+    if (password.length < 6) return next(new ErrorResponse("Password minimal 6 karakter", 400));
+    if (!role_id || !Number.isInteger(Number(role_id)) || Number(role_id) <= 0)
+        return next(new ErrorResponse("Role ID harus berupa angka positif", 400));
+
+    next();
+}
+
+export function validateLogin(req, res, next) {
+    const { username, password } = req.body;
+
+    if (!stringCheck(username)) return next(new ErrorResponse("Username tidak boleh kosong", 400));
+    if (!stringCheck(password)) return next(new ErrorResponse("Password tidak boleh kosong", 400));
+
+    next();
+}
+
+export function validateRecipeId(req, res, next) {
+    const recipeId = parseInt(req.params.id);
+
+    if (isNaN(recipeId) || recipeId <= 0)
+        return next(new ErrorResponse("ID resep tidak valid", 400));
+
+    req.recipeId = recipeId;
+    next();
+}
+
+export function validateRecipeCreate(req, res, next) {
+    const { name, category, instructions, ingredients } = req.body;
+
+    if (!stringCheck(name)) return next(new ErrorResponse("Nama resep wajib diisi", 400));
+    if (!stringCheck(category)) return next(new ErrorResponse("Kategori wajib diisi", 400));
+    if (!stringCheck(instructions)) return next(new ErrorResponse("Instruksi wajib diisi", 400));
+    if (!Array.isArray(ingredients) || ingredients.length === 0)
+        return next(new ErrorResponse("Bahan tidak boleh kosong", 400));
+
+    const hasInvalidIngredient = ingredients.some((item) => !item?.name || !stringCheck(item.name));
+    if (hasInvalidIngredient) return next(new ErrorResponse("Bahan tidak valid", 400));
+
+    next();
+}
+
 export function validateSearch(req, res, next) {
     const { operator, ingredients, excludedIngredients } = req.body;
 
-    if (!ingredients) {
-        return next(new ErrorResponse("Data 'ingredients' wajib diisi", 400));
-    }
+    if (!Array.isArray(ingredients) || ingredients.length === 0)
+        return next(new ErrorResponse("Data 'ingredients' wajib diisi sebagai array", 400));
 
-    if (!Array.isArray(ingredients)) {
-        return next(new ErrorResponse("Data 'ingredients' harus berupa array", 400));
-    }
-
-    if (ingredients.length === 0) {
-        return next(new ErrorResponse("Array 'ingredients' tidak boleh kosong", 400));
-    }
-
-    const invalidIngredients = ingredients.filter(
-        (item) => typeof item !== "string" || item.trim() === "",
-    );
-    if (invalidIngredients.length > 0) {
+    const hasInvalidIngredient = ingredients.some((item) => !stringCheck(item));
+    if (hasInvalidIngredient)
         return next(
             new ErrorResponse("Semua 'ingredients' harus berupa string yang tidak kosong", 400),
         );
-    }
 
     const validOperators = ["AND", "OR", "NOT"];
-    if (operator && !validOperators.includes(operator.toUpperCase())) {
+    if (operator && !validOperators.includes(operator.toUpperCase()))
         return next(new ErrorResponse(`Operator harus berupa ${validOperators.join(", ")}`, 400));
-    }
 
-    if (operator && operator.toUpperCase() === "NOT") {
-        if (!excludedIngredients || !Array.isArray(excludedIngredients)) {
+    if (operator?.toUpperCase() === "NOT") {
+        if (!Array.isArray(excludedIngredients) || excludedIngredients.length === 0)
             return next(
                 new ErrorResponse(
-                    "Operator NOT memerlukan 'excludedIngredients' berbentuk array",
+                    "Operator NOT memerlukan 'excludedIngredients' yang tidak kosong",
                     400,
                 ),
             );
-        }
-        if (excludedIngredients.length === 0) {
-            return next(new ErrorResponse("Array 'excludedIngredients' tidak boleh kosong", 400));
-        }
 
-        const invalidExcluded = excludedIngredients.filter(
-            (item) => typeof item !== "string" || item.trim() === "",
-        );
-        if (invalidExcluded.length > 0) {
+        const hasInvalidExcluded = excludedIngredients.some((item) => !stringCheck(item));
+        if (hasInvalidExcluded)
             return next(
                 new ErrorResponse(
                     "Semua 'excludedIngredients' harus berupa string yang tidak kosong",
                     400,
                 ),
             );
-        }
-    }
-
-    next();
-}
-
-// validasi resep id
-export function validateRecipeId(req, res, next) {
-    const recipeId = parseInt(req.params.id);
-
-    if (isNaN(recipeId) || recipeId <= 0) {
-        return next(new ErrorResponse("ID resep tidak valid", 400));
-    }
-
-    req.recipeId = recipeId;
-    next();
-}
-
-// validasi pembuatan resep
-export function validateRecipeCreate(req, res, next) {
-    const { name, category, description, instructions, ingredients } = req.body;
-
-    if (!name || typeof name !== "string" || name.trim() === "") {
-        return next(new ErrorResponse("Nama resep wajib diisi", 400));
-    }
-
-    if (!category || typeof category !== "string" || category.trim() === "") {
-        return next(new ErrorResponse("Kategori wajib diisi", 400));
-    }
-
-    if (!instructions || typeof instructions !== "string" || instructions.trim() === "") {
-        return next(new ErrorResponse("Instruksi wajib diisi", 400));
-    }
-
-    if (!ingredients || !Array.isArray(ingredients)) {
-        return next(new ErrorResponse("Bahan harus berupa array", 400));
-    }
-
-    if (ingredients.length === 0) {
-        return next(new ErrorResponse("Bahan tidak boleh kosong", 400));
-    }
-
-    // validasi bahan dari string/array object
-    const invalidIngredients = ingredients.filter((item) => {
-        if (typeof item === "object" && item !== null) {
-            return !item.name || typeof item.name !== "string" || item.name.trim() === "";
-        }
-        return typeof item !== "string" || item.trim() === "";
-    });
-
-    if (invalidIngredients.length > 0) {
-        return next(new ErrorResponse("Bahan tidak valid", 400));
     }
 
     next();
