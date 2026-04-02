@@ -1,20 +1,17 @@
 import SearchModel from "../models/searchModel.js";
-import { sendResponse } from "../utils/sendResponse.js";
 import ErrorResponse from "../utils/errorResponse.js";
+import { sendResponse } from "../utils/sendResponse.js";
 
 class SearchController {
-    // boolean retrieval
     static async searchRecipes(req, res, next) {
         try {
             const { operator = "OR", ingredients, excludedIngredients = [] } = req.body;
 
-            const normalizedIngredients = [
-                ...new Set(ingredients.map((i) => i.toLowerCase().trim())),
-            ].filter(Boolean);
+            const normalizedIngredients = [...new Set(ingredients.map((i) => i.toLowerCase().trim()))].filter(Boolean);
 
-            const normalizedExcluded = [
-                ...new Set(excludedIngredients.map((i) => i.toLowerCase().trim())),
-            ].filter(Boolean);
+            const normalizedExcluded = [...new Set(excludedIngredients.map((i) => i.toLowerCase().trim()))].filter(
+                Boolean,
+            );
 
             const results = await SearchModel.booleanSearch({
                 operator,
@@ -35,5 +32,4 @@ class SearchController {
         }
     }
 }
-
 export default SearchController;

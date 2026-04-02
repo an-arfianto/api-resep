@@ -2,10 +2,9 @@ import AdminModel from "../models/adminModel.js";
 import ErrorResponse from "../utils/errorResponse.js";
 
 class AdminController {
-    // semua user
-    static async getAllUsers(req, res, next) {
+    static async showAllUsers(req, res, next) {
         try {
-            const users = await AdminModel.getAllUsersWithRecipeCount();
+            const users = await AdminModel.showAllUsers();
 
             res.status(200).json({
                 success: true,
@@ -18,10 +17,9 @@ class AdminController {
         }
     }
 
-    // semua resep
-    static async getAllRecipes(req, res, next) {
+    static async showAllRecipes(req, res, next) {
         try {
-            const recipes = await AdminModel.getAllRecipesWithDetails();
+            const recipes = await AdminModel.showAllRecipes();
 
             res.status(200).json({
                 success: true,
@@ -34,16 +32,13 @@ class AdminController {
         }
     }
 
-    // hapus resep
     static async deleteRecipe(req, res, next) {
         try {
-            const recipeId = parseInt(req.params.id);
-
-            if (isNaN(recipeId)) {
+            if (isNaN(req.params.id)) {
                 return next(new ErrorResponse("id resep invalid", 400));
             }
 
-            const success = await AdminModel.deleteRecipe(recipeId);
+            const success = await AdminModel.deleteRecipe(req.params.id);
 
             if (!success) {
                 return next(new ErrorResponse("Resep tidak ada", 404));
@@ -58,10 +53,9 @@ class AdminController {
         }
     }
 
-    // sistem stats
-    static async getStats(req, res, next) {
+    static async showStats(req, res, next) {
         try {
-            const stats = await AdminModel.getSystemStats();
+            const stats = await AdminModel.showStats();
 
             res.status(200).json({
                 success: true,
@@ -73,16 +67,13 @@ class AdminController {
         }
     }
 
-    // naik jabatan
-    static async promoteToModerator(req, res, next) {
+    static async promote(req, res, next) {
         try {
-            const userId = parseInt(req.params.id);
-
-            if (isNaN(userId)) {
+            if (isNaN(req.params.id)) {
                 return next(new ErrorResponse("id user invalid", 400));
             }
 
-            const success = await AdminModel.promoteToModerator(userId);
+            const success = await AdminModel.promote(req.params.id);
 
             if (!success) {
                 return next(new ErrorResponse("User tidak ada/telah menjadi moderator", 404));
@@ -97,16 +88,13 @@ class AdminController {
         }
     }
 
-    // turun jabatan
-    static async demoteToUser(req, res, next) {
+    static async demote(req, res, next) {
         try {
-            const userId = parseInt(req.params.id);
-
-            if (isNaN(userId)) {
+            if (isNaN(req.params.id)) {
                 return next(new ErrorResponse("id user invalid", 400));
             }
 
-            const success = await AdminModel.demoteToUser(userId);
+            const success = await AdminModel.demote(req.params.id);
 
             if (!success) {
                 return next(new ErrorResponse("User tidak ada/bukan moderator", 404));
@@ -121,20 +109,17 @@ class AdminController {
         }
     }
 
-    // hapus user
     static async deleteUser(req, res, next) {
         try {
-            const userId = parseInt(req.params.id);
-
-            if (isNaN(userId)) {
+            if (isNaN(req.params.id)) {
                 return next(new ErrorResponse("id user invalid", 400));
             }
 
-            if (userId === req.user.id) {
+            if (req.params.id === req.user.id) {
                 return next(new ErrorResponse("Tidak bisa menghapus akun anda sendiri", 400));
             }
 
-            const success = await AdminModel.deleteUser(userId);
+            const success = await AdminModel.deleteUser(req.params.id);
 
             if (!success) {
                 return next(new ErrorResponse("User tidak ada/tidak bisa dihapus oleh admin", 404));

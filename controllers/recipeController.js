@@ -1,17 +1,22 @@
 import RecipeModel from "../models/recipeModel.js";
-import { sendResponse } from "../utils/sendResponse.js";
 import ErrorResponse from "../utils/errorResponse.js";
+import { sendResponse } from "../utils/sendResponse.js";
+
+function parseIngredient(item) {
+    return {
+        name: item.name.toLowerCase().trim(),
+        quantity: item.quantity || null,
+        unit: item.unit || null,
+    };
+}
 
 class RecipeController {
-    // semua resep
-    static async getAllRecipes(req, res, next) {
+    static async showAllRecipes(req, res, next) {
         try {
-            const filters = {
+            const recipes = await RecipeModel.showAllRecipes({
                 category: req.query.category,
                 userId: req.query.userId,
-            };
-
-            const recipes = await RecipeModel.getAllRecipes(filters);
+            });
 
             sendResponse(res, 200, {
                 message: "Menampilkan semua resep",
@@ -23,189 +28,82 @@ class RecipeController {
         }
     }
 
-    // resep id
-    static async getRecipeById(req, res, next) {
+    static async showRecipe(req, res, next) {
         try {
-            const recipeId = req.recipeId;
-            const recipe = await RecipeModel.getRecipeById(recipeId);
+            const recipe = await RecipeModel.showRecipe(req.recipeId);
+            if (!recipe) return next(new ErrorResponse("Resep tidak ada", 404));
 
-            if (!recipe) {
-                return next(new ErrorResponse("Resep tidak ada", 404));
-            }
+            sendResponse(res, 200, { message: "Menampilkan resep", data: recipe });
+        } catch (err) {
+            next(new ErrorResponse(err.message, 500));
+        }
+    }
+
+    static async showMyRecipes(req, res, next) {
+        try {
+            const recipes = await RecipeModel.showAllRecipes({
+                userId: req.user.id,
+                includeAll: true,
+            });
 
             sendResponse(res, 200, {
-                message: "Menampilkan resep",
-                data: recipe,
+                message: "Menampilkan resep saya",
+                count: recipes.length,
+                data: recipes,
             });
         } catch (err) {
             next(new ErrorResponse(err.message, 500));
         }
     }
 
-    // resep saya
-    static async getMyRecipes(req, res, next) {
-        try {
-            const userId = req.user.id;
-
-            const recipes = await RecipeModel.getAllRecipes({
-                userId: userId,
-                includeAll: true,
-            });
-
-            res.status(200).json({
-                success: true,
-                count: recipes.length,
-                data: recipes,
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
-
-    // tambah resep
     static async createRecipe(req, res, next) {
         try {
             const { name, category, description, instructions, ingredients } = req.body;
 
-            // parsing bahan dg takaran
-            const parsedIngredients = ingredients.map((item) => {
-                if (typeof item === "object") {
-                    return {
-                        name: item.name.toLowerCase().trim(),
-                        quantity: item.quantity || null,
-                        unit: item.unit || null,
-                    };
-                } else {
-                    // parsing string format
-                    const parts = item.trim().split(/\s+/);
-
-                    if (parts.length >= 3) {
-                        return {
-                            name: parts.slice(2).join(" ").toLowerCase().trim(),
-                            quantity: parseFloat(parts[0]) || null,
-                            unit: parts[1].toLowerCase().trim(),
-                        };
-                    } else if (parts.length === 2) {
-                        const maybeNumber = parseFloat(parts[0]);
-                        if (!isNaN(maybeNumber)) {
-                            return {
-                                name: parts[1].toLowerCase().trim(),
-                                quantity: maybeNumber,
-                                unit: null,
-                            };
-                        } else {
-                            return {
-                                name: item.toLowerCase().trim(),
-                                quantity: null,
-                                unit: null,
-                            };
-                        }
-                    } else {
-                        return {
-                            name: item.toLowerCase().trim(),
-                            quantity: null,
-                            unit: null,
-                        };
-                    }
-                }
-            });
-
             const recipeId = await RecipeModel.createRecipe(
-                {
-                    name,
-                    category,
-                    description,
-                    instructions,
-                    userId: req.user.id,
-                },
-                parsedIngredients,
+                { name, category, description, instructions, userId: req.user.id },
+                ingredients.map(parseIngredient),
             );
 
-            const newRecipe = await RecipeModel.getRecipeById(recipeId);
-
-            sendResponse(res, 201, {
-                message: "Resep berhasil dibuat",
-                data: newRecipe,
-            });
+            const newRecipe = await RecipeModel.showRecipe(recipeId);
+            sendResponse(res, 201, { message: "Resep berhasil dibuat", data: newRecipe });
         } catch (err) {
             next(new ErrorResponse(err.message, 500));
         }
     }
 
-    // update resep
     static async updateRecipe(req, res, next) {
         try {
-            const recipeId = req.recipeId;
             const { name, category, description, instructions, ingredients } = req.body;
 
-            const isOwner = await RecipeModel.isRecipeOwner(recipeId, req.user.id);
-            if (!isOwner) {
+            const isOwner = await RecipeModel.recipeOwner(req.recipeId, req.user.id);
+            if (!isOwner)
                 return next(new ErrorResponse("Resep tidak ditemukan/tidak memiliki akses", 403));
-            }
-
-            // parsing bahan dan takaran
-            const parsedIngredients = ingredients
-                ? ingredients.map((item) => {
-                      if (typeof item === "object") {
-                          return {
-                              name: item.name.toLowerCase().trim(),
-                              quantity: item.quantity || null,
-                              unit: item.unit || null,
-                          };
-                      } else {
-                          const parts = item.trim().split(/\s+/);
-                          if (parts.length >= 3) {
-                              return {
-                                  name: parts.slice(2).join(" ").toLowerCase().trim(),
-                                  quantity: parseFloat(parts[0]) || null,
-                                  unit: parts[1].toLowerCase().trim(),
-                              };
-                          } else {
-                              return {
-                                  name: item.toLowerCase().trim(),
-                                  quantity: null,
-                                  unit: null,
-                              };
-                          }
-                      }
-                  })
-                : null;
 
             const updated = await RecipeModel.updateRecipe(
-                recipeId,
+                req.recipeId,
                 { name, category, description, instructions },
-                parsedIngredients,
+                ingredients ? ingredients.map(parseIngredient) : null,
                 req.user.id,
             );
 
-            if (!updated) {
-                return next(new ErrorResponse("Resep gagal diupdate", 400));
-            }
+            if (!updated) return next(new ErrorResponse("Resep gagal diupdate", 400));
 
-            const updatedRecipe = await RecipeModel.getRecipeById(recipeId);
-
-            sendResponse(res, 200, {
-                message: "Resep berhasil diupdate",
-                data: updatedRecipe,
-            });
+            const updatedRecipe = await RecipeModel.showRecipe(req.recipeId);
+            sendResponse(res, 200, { message: "Resep berhasil diupdate", data: updatedRecipe });
         } catch (err) {
             next(new ErrorResponse(err.message, 500));
         }
     }
 
-    // hapus resep
     static async deleteRecipe(req, res, next) {
         try {
-            const recipeId = req.recipeId;
-            const deleted = await RecipeModel.deleteRecipe(recipeId, req.user.id);
-
-            if (!deleted) {
+            const isOwner = await RecipeModel.recipeOwner(req.recipeId, req.user.id);
+            if (!isOwner)
                 return next(new ErrorResponse("Resep tidak ditemukan/tidak memiliki akses", 403));
-            }
 
-            sendResponse(res, 200, {
-                message: "Resep berhasil dihapus",
-            });
+            await RecipeModel.deleteRecipe(req.recipeId, req.user.id);
+            sendResponse(res, 200, { message: "Resep berhasil dihapus" });
         } catch (err) {
             next(new ErrorResponse(err.message, 500));
         }

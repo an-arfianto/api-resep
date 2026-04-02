@@ -1,10 +1,9 @@
-import UserModel from "../models/userModel.js";
-import { sendResponse } from "../utils/sendResponse.js";
-import ErrorResponse from "../utils/errorResponse.js";
 import jwt from "jsonwebtoken";
+import UserModel from "../models/userModel.js";
+import ErrorResponse from "../utils/errorResponse.js";
+import { sendResponse } from "../utils/sendResponse.js";
 
 class UserController {
-    // register
     static async register(req, res, next) {
         try {
             const { username, password, role_id } = req.body;
@@ -19,7 +18,7 @@ class UserController {
                 password,
                 role_id,
             });
-            const user = await UserModel.findById(userId);
+            const user = await UserModel.findId(userId);
 
             const token = jwt.sign(
                 { id: user.id, username: user.username, role_id: user.role_id },
@@ -44,18 +43,17 @@ class UserController {
         }
     }
 
-    // login
     static async login(req, res, next) {
         try {
             const { username, password } = req.body;
 
-            const user = await UserModel.findByUsername(username);
+            const user = await UserModel.findUsername(username);
             if (!user) {
                 return next(new ErrorResponse("Username atau password salah", 401));
             }
 
-            const isValid = await UserModel.verifyPassword(password, user.password);
-            if (!isValid) {
+            const valid = await UserModel.verifyPassword(password, user.password);
+            if (!valid) {
                 return next(new ErrorResponse("Username atau password salah", 401));
             }
 
@@ -82,10 +80,9 @@ class UserController {
         }
     }
 
-    // ambil data user
-    static async getCurrentUser(req, res, next) {
+    static async showUser(req, res, next) {
         try {
-            const user = await UserModel.findById(req.user.id);
+            const user = await UserModel.findId(req.user.id);
 
             if (!user) {
                 return next(new ErrorResponse("User tidak ditemukan", 404));

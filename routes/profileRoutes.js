@@ -7,10 +7,7 @@ const router = express.Router();
 // route dapat diakses jika sudah login/terautentikasi
 router.use(authMiddleware);
 
-// info profil
 router.get("/", ProfileController.getProfile);
-
-// user management
 router.put("/", ProfileController.updateProfile);
 router.put("/password", ProfileController.updatePassword);
 

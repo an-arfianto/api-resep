@@ -1,11 +1,10 @@
 import RecipeModel from "../models/recipeModel.js";
 import ErrorResponse from "../utils/errorResponse.js";
 
-class ModerationController {
-    // semua pending resep
-    static async getPendingRecipes(req, res, next) {
+class ModController {
+    static async showPending(req, res, next) {
         try {
-            const recipes = await RecipeModel.getRecipesByStatus("pending");
+            const recipes = await RecipeModel.showRecipeStatus("pending");
 
             res.status(200).json({
                 success: true,
@@ -17,16 +16,13 @@ class ModerationController {
         }
     }
 
-    // resep status
-    static async getRecipesByStatus(req, res, next) {
+    static async showRecipeStatus(req, res, next) {
         try {
-            const { status } = req.query;
-
-            if (!status || !["pending", "approved", "rejected"].includes(status)) {
+            if (!req.query.status || !["pending", "approved", "rejected"].includes(req.query.status)) {
                 return next(new ErrorResponse("Status invalid", 400));
             }
 
-            const recipes = await RecipeModel.getRecipesByStatus(status);
+            const recipes = await RecipeModel.showRecipeStatus(req.query.status);
 
             res.status(200).json({
                 success: true,
@@ -39,10 +35,9 @@ class ModerationController {
         }
     }
 
-    // semua resep
-    static async getAllRecipes(req, res, next) {
+    static async showAllRecipes(req, res, next) {
         try {
-            const recipes = await RecipeModel.getAllRecipes({ includeAll: true });
+            const recipes = await RecipeModel.showAllRecipes({ includeAll: true });
 
             res.status(200).json({
                 success: true,
@@ -54,17 +49,14 @@ class ModerationController {
         }
     }
 
-    // resep yg disetujui
     static async approveRecipe(req, res, next) {
         try {
-            const { id } = req.params;
-            const moderatorId = req.user.id;
-            const recipeExists = await RecipeModel.recipeExists(id);
+            const recipeExists = await RecipeModel.recipeExists(req.params.id);
             if (!recipeExists) {
                 return next(new ErrorResponse("Resep tidak ada", 404));
             }
 
-            const recipe = await RecipeModel.getRecipeById(id, true);
+            const recipe = await RecipeModel.showRecipe(req.params.id, true);
             if (recipe.status === "approved") {
                 return next(new ErrorResponse("Resep sudah disetujui", 400));
             }
@@ -73,13 +65,12 @@ class ModerationController {
                 return next(new ErrorResponse("Anda tidak bisa mereview resep anda sendiri", 400));
             }
 
-            // resep disetujui
-            const success = await RecipeModel.approveRecipe(id, moderatorId);
+            const success = await RecipeModel.approveRecipe(req.params.id, req.user.id);
             if (!success) {
                 return next(new ErrorResponse("Resep gagal disetujui", 500));
             }
 
-            const updatedRecipe = await RecipeModel.getRecipeById(id, true);
+            const updatedRecipe = await RecipeModel.showRecipe(req.params.id, true);
 
             res.status(200).json({
                 success: true,
@@ -91,18 +82,14 @@ class ModerationController {
         }
     }
 
-    // resep yg ditolak
     static async rejectRecipe(req, res, next) {
         try {
-            const { id } = req.params;
-            const { reason } = req.body;
-            const moderatorId = req.user.id;
-            const recipeExists = await RecipeModel.recipeExists(id);
+            const recipeExists = await RecipeModel.recipeExists(req.params.id);
             if (!recipeExists) {
                 return next(new ErrorResponse("Resep tidak ada", 404));
             }
 
-            const recipe = await RecipeModel.getRecipeById(id, true);
+            const recipe = await RecipeModel.showRecipe(req.params.id, true);
             if (recipe.status === "rejected") {
                 return next(new ErrorResponse("Resep sudah ditolak", 400));
             }
@@ -111,14 +98,13 @@ class ModerationController {
                 return next(new ErrorResponse("Anda tidak bisa mereview resep anda sendiri", 400));
             }
 
-            // resep ditolak
-            const success = await RecipeModel.rejectRecipe(id, moderatorId, reason || null);
+            const success = await RecipeModel.rejectRecipe(req.params.id, req.user.id, req.body.reason || null);
 
             if (!success) {
                 return next(new ErrorResponse("Resep gagal ditolak", 500));
             }
 
-            const updatedRecipe = await RecipeModel.getRecipeById(id, true);
+            const updatedRecipe = await RecipeModel.showRecipe(req.params.id, true);
 
             res.status(200).json({
                 success: true,
@@ -130,10 +116,9 @@ class ModerationController {
         }
     }
 
-    // mod stats
-    static async getStats(req, res, next) {
+    static async showStats(req, res, next) {
         try {
-            const stats = await RecipeModel.getModerationStats();
+            const stats = await RecipeModel.showModStats();
 
             res.status(200).json({
                 success: true,
@@ -144,12 +129,9 @@ class ModerationController {
         }
     }
 
-    // resep detail
-    static async getRecipeDetails(req, res, next) {
+    static async showRecipeDetail(req, res, next) {
         try {
-            const { id } = req.params;
-
-            const recipe = await RecipeModel.getRecipeById(id, true);
+            const recipe = await RecipeModel.showRecipe(req.params.id, true);
 
             if (!recipe) {
                 return next(new ErrorResponse("Resep tidak ada", 404));
@@ -165,4 +147,4 @@ class ModerationController {
     }
 }
 
-export default ModerationController;
+export default ModController;
