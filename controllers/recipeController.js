@@ -15,7 +15,6 @@ class RecipeController {
         try {
             const recipes = await RecipeModel.showAllRecipes({
                 category: req.query.category,
-                userId: req.query.userId,
             });
 
             sendResponse(res, 200, {
@@ -65,7 +64,7 @@ class RecipeController {
                 ingredients.map(parseIngredient),
             );
 
-            const newRecipe = await RecipeModel.showRecipe(recipeId);
+            const newRecipe = await RecipeModel.showRecipe(recipeId, true);
             sendResponse(res, 201, { message: "Resep berhasil dibuat", data: newRecipe });
         } catch (err) {
             next(new ErrorResponse(err.message, 500));
@@ -89,7 +88,7 @@ class RecipeController {
 
             if (!updated) return next(new ErrorResponse("Resep gagal diupdate", 400));
 
-            const updatedRecipe = await RecipeModel.showRecipe(req.recipeId);
+            const updatedRecipe = await RecipeModel.showRecipe(req.recipeId, true);
             sendResponse(res, 200, { message: "Resep berhasil diupdate", data: updatedRecipe });
         } catch (err) {
             next(new ErrorResponse(err.message, 500));

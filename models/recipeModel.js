@@ -53,8 +53,8 @@ class RecipeModel {
         return db(sql, params);
     }
 
-    static async showRecipe(recipeId) {
-        const sql = `
+    static async showRecipe(recipeId, includeAll = false) {
+        let sql = `
             SELECT r.id, r.name, r.category,
                 r.description, r.instructions, r.status,
                 r.reviewed_by, r.reviewed_at, r.rejection_reason,
@@ -66,8 +66,13 @@ class RecipeModel {
             LEFT JOIN users reviewer ON r.reviewed_by = reviewer.id
             WHERE r.id = ?
         `;
-        const recipeRows = await db(sql, [recipeId]);
+        const params = [recipeId];
 
+        if (!includeAll) {
+            sql += " AND r.status = 'approved'";
+        }
+
+        const recipeRows = await db(sql, params);
         if (!recipeRows.length) return null;
 
         const recipe = recipeRows[0];
@@ -89,14 +94,25 @@ class RecipeModel {
     static async createRecipe(recipeData, ingredientsList) {
         const result = await db(
             "INSERT INTO recipes (name, category, description, instructions, user_id, status) VALUES (?, ?, ?, ?, ?, 'pending')",
-            [recipeData.name, recipeData.category, recipeData.description, recipeData.instructions, recipeData.userId],
+            [
+                recipeData.name,
+                recipeData.category,
+                recipeData.description,
+                recipeData.instructions,
+                recipeData.userId,
+            ],
         );
 
         const recipeId = result.insertId;
 
         if (ingredientsList?.length) {
             const placeholders = ingredientsList.map(() => "(?, ?, ?, ?)").join(", ");
-            const values = ingredientsList.flatMap((i) => [recipeId, i.name, i.quantity ?? null, i.unit ?? null]);
+            const values = ingredientsList.flatMap((i) => [
+                recipeId,
+                i.name,
+                i.quantity ?? null,
+                i.unit ?? null,
+            ]);
             await db(
                 `INSERT INTO recipe_ingredients (recipe_id, ingredient, quantity, unit) VALUES ${placeholders}`,
                 values,
@@ -127,7 +143,12 @@ class RecipeModel {
         if (ingredientsList?.length) {
             await db("DELETE FROM recipe_ingredients WHERE recipe_id = ?", [recipeId]);
             const placeholders = ingredientsList.map(() => "(?, ?, ?, ?)").join(", ");
-            const values = ingredientsList.flatMap((i) => [recipeId, i.name, i.quantity ?? null, i.unit ?? null]);
+            const values = ingredientsList.flatMap((i) => [
+                recipeId,
+                i.name,
+                i.quantity ?? null,
+                i.unit ?? null,
+            ]);
             await db(
                 `INSERT INTO recipe_ingredients (recipe_id, ingredient, quantity, unit) VALUES ${placeholders}`,
                 values,
@@ -138,7 +159,10 @@ class RecipeModel {
     }
 
     static async deleteRecipe(recipeId, userId) {
-        const result = await db("DELETE FROM recipes WHERE id = ? AND user_id = ?", [recipeId, userId]);
+        const result = await db("DELETE FROM recipes WHERE id = ? AND user_id = ?", [
+            recipeId,
+            userId,
+        ]);
         return result.affectedRows > 0;
     }
 
@@ -148,83 +172,15 @@ class RecipeModel {
     }
 
     static async recipeOwner(recipeId, userId) {
-        const rows = await db("SELECT id FROM recipes WHERE id = ? AND user_id = ?", [recipeId, userId]);
+        const rows = await db("SELECT id FROM recipes WHERE id = ? AND user_id = ?", [
+            recipeId,
+            userId,
+        ]);
         return rows.length > 0;
     }
 
     static async showRecipeStatus(status) {
         return this.showAllRecipes({ status, includeAll: true });
-    }
-
-    static async approveRecipe(recipeId, moderatorId) {
-        const sql = `
-            UPDATE recipes
-            SET status = 'approved', reviewed_by = ?, reviewed_at = NOW(), rejection_reason = NULL
-            WHERE id = ?
-        `;
-        const result = await db(sql, [moderatorId, recipeId]);
-        return result.affectedRows > 0;
-    }
-
-    static async rejectRecipe(recipeId, moderatorId, reason = null) {
-        const result = await db(
-            `UPDATE recipes
-            SET status = 'rejected', reviewed_by = ?, reviewed_at = NOW(), rejection_reason = ?
-            WHERE id = ?
-        `,
-            [moderatorId, reason, recipeId],
-        );
-        return result.affectedRows > 0;
-    }
-
-    static async showModStats() {
-        const [stats] = await db(
-            `SELECT
-                COUNT(*) as total,
-                SUM(status = 'pending') as pending,
-                SUM(status = 'approved') as approved,
-                SUM(status = 'rejected') as rejected
-            FROM recipes
-        `,
-            [],
-        );
-        return stats;
-    }
-
-    static async getModStats(moderatorId) {
-        const [[mod], [pending], [personal]] = await Promise.all([
-            db(
-                `SELECT
-                    COUNT(*) as reviewed_count,
-                    SUM(status = 'approved') as approved_count,
-                    SUM(status = 'rejected') as rejected_count
-                FROM recipes WHERE reviewed_by = ?
-            `,
-                [moderatorId],
-            ),
-            db("SELECT COUNT(*) as pending_count FROM recipes WHERE status = 'pending'", []),
-            db(
-                `SELECT
-                    COUNT(*) as my_recipe_count,
-                    SUM(status = 'approved') as my_approved_count,
-                    SUM(status = 'pending') as my_pending_count,
-                    SUM(status = 'rejected') as my_rejected_count
-                FROM recipes WHERE user_id = ?
-            `,
-                [moderatorId],
-            ),
-        ]);
-
-        return {
-            reviewed_count: mod.reviewed_count || 0,
-            approved_count: mod.approved_count || 0,
-            rejected_count: mod.rejected_count || 0,
-            pending_count: pending.pending_count || 0,
-            my_recipe_count: personal.my_recipe_count || 0,
-            my_approved_count: personal.my_approved_count || 0,
-            my_pending_count: personal.my_pending_count || 0,
-            my_rejected_count: personal.my_rejected_count || 0,
-        };
     }
 }
 
