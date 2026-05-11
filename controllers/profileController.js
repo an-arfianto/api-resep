@@ -1,4 +1,3 @@
-import RecipeModel from "../models/recipeModel.js";
 import UserModel from "../models/userModel.js";
 import ErrorResponse from "../utils/errorResponse.js";
 
@@ -9,14 +8,6 @@ class ProfileController {
 
             if (req.user.role_id === 1) {
                 profileData = await UserModel.findId(req.user.id);
-            } else if (req.user.role_id === 2) {
-                const userInfo = await UserModel.findId(req.user.id);
-                const moderatorStats = await RecipeModel.showModStats(req.user.id);
-
-                profileData = {
-                    ...userInfo,
-                    ...moderatorStats,
-                };
             } else {
                 profileData = await UserModel.showUserStats(req.user.id);
             }
@@ -66,7 +57,9 @@ class ProfileController {
             const { currentPassword, newPassword } = req.body;
 
             if (!currentPassword || !newPassword) {
-                return next(new ErrorResponse("Password sekarang dan password baru dibutuhkan", 400));
+                return next(
+                    new ErrorResponse("Password sekarang dan password baru dibutuhkan", 400),
+                );
             }
 
             if (newPassword.length < 6) {
