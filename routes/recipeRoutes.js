@@ -10,6 +10,13 @@ router.get("/", RecipeController.showAllRecipes);
 router.get("/my", authMiddleware, suspendMiddleware, RecipeController.showMyRecipes);
 router.get("/:id", validateRecipeId, RecipeController.showRecipe);
 
+router.get(
+    "/:id/edit",
+    authMiddleware,
+    suspendMiddleware,
+    validateRecipeId,
+    RecipeController.showMyRecipe,
+);
 router.post(
     "/",
     authMiddleware,

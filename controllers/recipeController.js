@@ -29,8 +29,34 @@ class RecipeController {
 
     static async showRecipe(req, res, next) {
         try {
-            const recipe = await RecipeModel.showRecipe(req.recipeId);
+            let recipe = await RecipeModel.showRecipe(req.recipeId);
+
+            if (!recipe) {
+                const fullRecipe = await RecipeModel.showRecipe(req.recipeId, true);
+                if (!fullRecipe) return next(new ErrorResponse("Resep tidak ada", 404));
+
+                const userId = req.user?.id;
+                if (!userId || fullRecipe.user_id !== userId) {
+                    return next(new ErrorResponse("Resep tidak ada", 404));
+                }
+
+                recipe = fullRecipe;
+            }
+
+            sendResponse(res, 200, { message: "Menampilkan resep", data: recipe });
+        } catch (err) {
+            next(new ErrorResponse(err.message, 500));
+        }
+    }
+
+    static async showMyRecipe(req, res, next) {
+        try {
+            const recipe = await RecipeModel.showRecipe(req.recipeId, true);
             if (!recipe) return next(new ErrorResponse("Resep tidak ada", 404));
+
+            if (recipe.user_id !== req.user.id) {
+                return next(new ErrorResponse("Tidak memiliki akses", 403));
+            }
 
             sendResponse(res, 200, { message: "Menampilkan resep", data: recipe });
         } catch (err) {
